@@ -17,6 +17,8 @@ services:
 #      - storage:/var/lib/influxdb
     environment:
       INFLUXDB_REPORTING_DISABLED: "true"
+      INFLUXDB_HTTP_LOG_ENABLED: "false"
+      INFLUXDB_DATA_QUERY_LOG_ENABLED: "false"
 
   dashboard:
     image: grafana/grafana:latest

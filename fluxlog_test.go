@@ -8,7 +8,7 @@ import (
 var address string = "http://storage:8086"
 
 func TestConnectInfluxTcp(t *testing.T) {
-	connect(t)
+	connectt(t)
 	ChangeGlobalTags(map[string]string{"env": "test"})
 	ChangePrecision("us")
 	SaveMetadata(true)
@@ -16,7 +16,7 @@ func TestConnectInfluxTcp(t *testing.T) {
 }
 
 func TestWrite(t *testing.T) {
-	connect(t)               // setup influx connection
+	connectt(t)              // setup influx connection
 	defer DisconnectInflux() // teardown influx connection
 
 	measure := "test_write_01"
@@ -35,7 +35,7 @@ func TestWrite(t *testing.T) {
 }
 
 func TestWritef(t *testing.T) {
-	connect(t)               // setup influx connection
+	connectt(t)              // setup influx connection
 	defer DisconnectInflux() // teardown influx connection
 
 	measure := "failed to do thing with id %d"
@@ -62,7 +62,7 @@ func TestWritef(t *testing.T) {
 }
 
 func TestWhitelist(t *testing.T) {
-	connect(t)               // setup influx connection
+	connectt(t)              // setup influx connection
 	defer DisconnectInflux() // teardown influx connection
 
 	measureDeny := "test_write_02"
@@ -92,9 +92,50 @@ func TestWhitelist(t *testing.T) {
 	}
 }
 
-func connect(t *testing.T) {
+func BenchmarkWrite(b *testing.B) {
+	connectb(b)              // setup influx connection
+	defer DisconnectInflux() // teardown influx connection
+
+	var err error
+	fields := map[string]interface{}{"id": 42}
+	tags := map[string]string{"test": b.Name()}
+	// run the Fib function b.N times
+	for n := 0; n < b.N; n++ {
+		err = Write("test_write_03", fields, tags)
+	}
+	if err != nil {
+		b.Fatal("Final write in benchmark failed with error:", err)
+	}
+}
+
+func BenchmarkWritef(b *testing.B) {
+	connectb(b)              // setup influx connection
+	defer DisconnectInflux() // teardown influx connection
+
+	var err error
+	for n := 0; n < b.N; n++ {
+		err = Writef("benchmarking thing with id %d", n)
+	}
+	if err != nil {
+		b.Fatal("Final writef in benchmark failed with error:", err)
+	}
+}
+
+func connectb(b *testing.B) {
+	b.Helper()
+	err := connect()
+	if err != nil {
+		b.Fatal("Could not connect influx tcp with address", address)
+	}
+}
+
+func connect() error {
+	return ConnectInflux(address, "", "")
+}
+
+func connectt(t *testing.T) {
 	t.Helper()
-	err := ConnectInflux(address, "", "")
+	err := connect()
 	if err != nil {
 		t.Fatal("Could not connect influx tcp with address", address)
 	}
