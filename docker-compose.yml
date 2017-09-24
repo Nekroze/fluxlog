@@ -1,0 +1,34 @@
+version: "2"
+
+services:
+  test:
+    build: .
+    restart: "no"
+    command: ./test.sh TEST
+    volumes:
+      - .coverage:/go/src/gitlab.com/nekroze/fluxlog/.coverage
+    depends_on:
+      - storage
+
+  storage:
+    image: influxdb:alpine
+    restart: "always"
+#    volumes:
+#      - storage:/var/lib/influxdb
+    environment:
+      INFLUXDB_REPORTING_DISABLED: "true"
+
+  dashboard:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - dash:/var/lib/grafana
+    environment:
+      GF_DEFAULT_INSTANCE_NAME: fluxlog
+      GF_SERVER_ROOT_URL: http://localhost:3000
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+
+volumes:
+#  storage:
+  dash:
