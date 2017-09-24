@@ -9,9 +9,6 @@ var address string = "http://storage:8086"
 
 func TestConnectInfluxTcp(t *testing.T) {
 	connectt(t)
-	ChangeGlobalTags(map[string]string{"env": "test"})
-	ChangePrecision("us")
-	SaveMetadata(true)
 	defer DisconnectInflux()
 }
 
@@ -130,6 +127,8 @@ func connectb(b *testing.B) {
 }
 
 func connect() error {
+	ChangeGlobalTags(map[string]string{"env": "test"})
+	SaveMetadata(true)
 	return ConnectInflux(address, "", "")
 }
 

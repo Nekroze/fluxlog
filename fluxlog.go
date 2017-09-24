@@ -24,8 +24,8 @@ var tags map[string]string
 // This allows avoiding costly mistakes by writing to a measurement name with a typo.
 var measurementWhitelist []string
 
-// Precision to use when storing events. eg, "s" or "us"
-var precision string = "s"
+// Precision to use when storing events. eg, "s" or "us" or "ms"
+var precision string = "ms"
 
 // Switch to save metadata (calling file and line number) when saving an event.
 var metadata bool = false
