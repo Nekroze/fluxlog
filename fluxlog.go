@@ -4,7 +4,9 @@ package fluxlog
 import (
 	"fmt"
 	influx "github.com/influxdata/influxdb/client/v2"
+	"path"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -24,10 +26,18 @@ var measurementWhitelist []string
 
 // Precision to use when storing events. eg, "s" or "us"
 var precision string = "s"
+
+// Switch to save metadata (calling file and line number) when saving an event.
+var metadata bool = false
+
 var writefRegex *regexp.Regexp
 
 func init() {
 	writefRegex = regexp.MustCompile("%(#|\\+)?([a-zA-Z])")
+}
+
+func SaveMetadata(new bool) {
+	metadata = new
 }
 
 // Change the database events will be written to.
@@ -57,10 +67,8 @@ func AddMeasurementToWhitelist(measurement string) {
 }
 
 // Add multiple measurements to the whitelist. See AddMeasurementToWhitelist
-func AddMeasurementsToWhitelist(measurements []string) {
-	for _, m := range measurements {
-		AddMeasurementToWhitelist(m)
-	}
+func ChangeMeasurementsWhitelist(measurements []string) {
+	measurementWhitelist = measurements
 }
 
 // Change global tags that are always used when sending an event but may be overridden per request.
@@ -132,6 +140,9 @@ func Write(measurement string, fields map[string]interface{}, itags map[string]s
 		wtags[k] = v
 	}
 
+	if metadata {
+		fields = mergeFields(getMetadataFields(2), fields)
+	}
 	pt, err := influx.NewPoint(measurement, wtags, fields, time.Now())
 	if err != nil {
 		return err
@@ -140,6 +151,66 @@ func Write(measurement string, fields map[string]interface{}, itags map[string]s
 
 	err = client.Write(bp)
 	return err
+}
+
+// Write an event to influxdb using a similar call signature to logging a message
+func Writef(signature string, fields ...interface{}) error {
+	if client == nil {
+		return fmt.Errorf("influxdb client is not connected")
+	}
+	fieldMap := make(map[string]interface{})
+	fieldMapCounter := make(map[string]int)
+	var suffix int
+	for i, field := range writefRegex.FindAllString(signature, -1) {
+		suffix = 1
+		for k, v := range fieldMapCounter {
+			if k == field {
+				suffix = v + 1
+			}
+		}
+		if i >= len(fields) {
+			return fmt.Errorf("Insufficient number of fields provided")
+		}
+		fieldMap[fmt.Sprintf("%s%d", strings.TrimLeft(field, "%"), suffix)] = fields[i]
+	}
+	if metadata {
+		fieldMap = mergeFields(getMetadataFields(2), fieldMap)
+	}
+	return Write(signature, fieldMap, map[string]string{})
+}
+
+func mergeFields(left map[string]interface{}, right map[string]interface{}) map[string]interface{} {
+	for k, v := range right {
+		left[k] = v
+	}
+	return left
+}
+
+func getMetadataFields(skip int) map[string]interface{} {
+	pc, fun, err := getRunFunc(skip + 1)
+	if err != nil {
+		return map[string]interface{}{}
+	}
+	file, line := fun.FileLine(pc)
+	return map[string]interface{}{
+		"func": fun.Name(),
+		"file": path.Base(file),
+		"line": line,
+	}
+}
+
+func getRunFunc(skip int) (uintptr, *runtime.Func, error) {
+	fpcs := make([]uintptr, 1)
+	n := runtime.Callers(skip+1, fpcs)
+	if n == 0 {
+		return 0, nil, fmt.Errorf("Could not retriever caller runtime info")
+	}
+
+	fun := runtime.FuncForPC(fpcs[0] - 1)
+	if fun == nil {
+		return 0, nil, fmt.Errorf("Could not retriever caller runtime info")
+	}
+	return fpcs[0] - 1, fun, nil
 }
 
 func ensureSchema() error {
@@ -164,27 +235,4 @@ func queryInflux(cmd string) (res []influx.Result, err error) {
 		return res, err
 	}
 	return res, nil
-}
-
-// Write an event to influxdb using a similar call signature to logging a message
-func Writef(signature string, fields ...interface{}) error {
-	if client == nil {
-		return fmt.Errorf("influxdb client is not connected")
-	}
-	fieldMap := make(map[string]interface{})
-	fieldMapCounter := make(map[string]int)
-	var suffix int
-	for i, field := range writefRegex.FindAllString(signature, -1) {
-		suffix = 1
-		for k, v := range fieldMapCounter {
-			if k == field {
-				suffix = v + 1
-			}
-		}
-		if i >= len(fields) {
-			return fmt.Errorf("Insufficient number of fields provided")
-		}
-		fieldMap[fmt.Sprintf("%s%d", strings.TrimLeft(field, "%"), suffix)] = fields[i]
-	}
-	return Write(signature, fieldMap, map[string]string{})
 }
