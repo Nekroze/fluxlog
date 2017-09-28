@@ -6,8 +6,10 @@ coveragehtm=$coveragedir/coverage.html
 if [ "$1" == "TEST" ]; then
     set -euf
 
-    go test -v -bench . -cover -coverprofile $coverageout
+    go test -v -short -bench . -cover -coverprofile $coverageout
     go tool cover -html=$coverageout -o $coveragehtm
+elif [ "$1" == "DEMO" ]; then
+    go test -v -bench . -benchtime 1m
 else
     set -euf
 

@@ -3,6 +3,7 @@ package fluxlog
 import (
 	"encoding/json"
 	"testing"
+	"time"
 )
 
 var address string = "http://storage:8086"
@@ -112,6 +113,23 @@ func BenchmarkWritef(b *testing.B) {
 	var err error
 	for n := 0; n < b.N; n++ {
 		err = Writef("benchmarking thing with id %d", n)
+	}
+	if err != nil {
+		b.Fatal("Final writef in benchmark failed with error:", err)
+	}
+}
+
+func BenchmarkWritefSlow(b *testing.B) {
+	if testing.Short() {
+		b.Skipf("Skipping %s in short mode", b.Name())
+	}
+	connectb(b)              // setup influx connection
+	defer DisconnectInflux() // teardown influx connection
+
+	var err error
+	for n := 0; n < b.N; n++ {
+		err = Writef("benchmarking thing with id %d", n)
+		time.Sleep(500 * time.Millisecond)
 	}
 	if err != nil {
 		b.Fatal("Final writef in benchmark failed with error:", err)

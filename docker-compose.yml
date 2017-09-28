@@ -13,24 +13,21 @@ services:
   storage:
     image: influxdb:alpine
     restart: "always"
-#    volumes:
-#      - storage:/var/lib/influxdb
+    volumes:
+      - storage:/var/lib/influxdb
     environment:
       INFLUXDB_REPORTING_DISABLED: "true"
       INFLUXDB_HTTP_LOG_ENABLED: "false"
       INFLUXDB_DATA_QUERY_LOG_ENABLED: "false"
 
   dashboard:
-    image: grafana/grafana:latest
+    image: chronograf:alpine
+    command: chronograf --influxdb-url=http://storage:8086
     ports:
-      - "3000:3000"
+      - "8888:8888"
     volumes:
-      - dash:/var/lib/grafana
-    environment:
-      GF_DEFAULT_INSTANCE_NAME: fluxlog
-      GF_SERVER_ROOT_URL: http://localhost:3000
-      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      - dash:/var/lib/chronograf
 
 volumes:
-#  storage:
+  storage:
   dash:
