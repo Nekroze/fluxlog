@@ -2,6 +2,7 @@ package fluxlog
 
 import (
 	"encoding/json"
+	"math/rand"
 	"testing"
 	"time"
 )
@@ -98,27 +99,10 @@ func BenchmarkWrite(b *testing.B) {
 	tags := map[string]string{"test": b.Name()}
 	// run the Fib function b.N times
 	for n := 0; n < b.N; n++ {
-		err = Write("test_write_03", fields, tags)
-		if err != nil {
-			b.Fatal("Write in benchmark failed with error:", err)
-		}
-	}
-}
-
-func BenchmarkWriteReconnect(b *testing.B) {
-	configure()              // setup influx connection
-	defer DisconnectInflux() // teardown influx connection
-
-	var err error
-	fields := map[string]interface{}{"id": 42}
-	tags := map[string]string{"test": b.Name()}
-	// run the Fib function b.N times
-	for n := 0; n < b.N; n++ {
 		err = Write("test_write_04", fields, tags)
 		if err != nil {
 			b.Fatal("Write in benchmark failed with error:", err)
 		}
-		DisconnectInflux()
 	}
 }
 
@@ -148,7 +132,24 @@ func BenchmarkWritefSlow(b *testing.B) {
 		if err != nil {
 			b.Fatal("Writef in benchmark failed with error:", err)
 		}
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(time.Duration(+rand.Intn(1000)) * time.Millisecond)
+	}
+}
+
+func BenchmarkWriteReconnect(b *testing.B) {
+	configure()              // setup influx connection
+	defer DisconnectInflux() // teardown influx connection
+
+	var err error
+	fields := map[string]interface{}{"id": 42}
+	tags := map[string]string{"test": b.Name()}
+	// run the Fib function b.N times
+	for n := 0; n < b.N; n++ {
+		err = Write("test_write_05", fields, tags)
+		if err != nil {
+			b.Fatal("Write in benchmark failed with error:", err)
+		}
+		DisconnectInflux()
 	}
 }
 

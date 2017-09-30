@@ -55,3 +55,18 @@ func main() {
 ```
 
 While this is very similar to the last example it has enabled saving metadata. Now the saved data point will have the `d1` field with a value of `42` but also fields `file`, `func`, and `line` the last of which will equal `10` as that is the line number calling `fluxlog.Writef`.
+
+## Tests
+
+Fluxlog attempts to provide a complete test suite including benchmarks and coverage reports and a easy to use tool chain. At minimum you need docker-compose installed but after that even having Go installed is optional.
+
+There is a convinient test script that will make sure everything is set up to run the entire test suite and report on it. This should be the single entrypoint for testing and ci testing.
+
+```bash
+ $ ./test.sh
+```
+
+To run the benchmark suites over a longer period of time to give you an idea of the kind of data fluxlog produces and inspect it using a dashboard like chronograf or grafana, simple define the environment variable `FLUXLOG_TEST_ACTION` with a value of `DEMO` which will enable a longer test suite run that takes several minutes and can demonstrate live data ingestion.
+
+Here you can see the demo run output in chronograf graphing how many events occurred and the latest value of d1 at that time:
+![demo](benchmark_demo.png)
