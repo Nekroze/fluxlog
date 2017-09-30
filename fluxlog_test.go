@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func configure()
+func configure() {
 	ChangeGlobalTags(map[string]string{"env": "test"})
 	SaveMetadata(true)
 	SetAddress("http://storage:8086")
@@ -99,9 +99,26 @@ func BenchmarkWrite(b *testing.B) {
 	// run the Fib function b.N times
 	for n := 0; n < b.N; n++ {
 		err = Write("test_write_03", fields, tags)
+		if err != nil {
+			b.Fatal("Write in benchmark failed with error:", err)
+		}
 	}
-	if err != nil {
-		b.Fatal("Final write in benchmark failed with error:", err)
+}
+
+func BenchmarkWriteReconnect(b *testing.B) {
+	configure()              // setup influx connection
+	defer DisconnectInflux() // teardown influx connection
+
+	var err error
+	fields := map[string]interface{}{"id": 42}
+	tags := map[string]string{"test": b.Name()}
+	// run the Fib function b.N times
+	for n := 0; n < b.N; n++ {
+		err = Write("test_write_04", fields, tags)
+		if err != nil {
+			b.Fatal("Write in benchmark failed with error:", err)
+		}
+		DisconnectInflux()
 	}
 }
 
@@ -112,9 +129,9 @@ func BenchmarkWritef(b *testing.B) {
 	var err error
 	for n := 0; n < b.N; n++ {
 		err = Writef("benchmarking thing with id %d", n)
-	}
-	if err != nil {
-		b.Fatal("Final writef in benchmark failed with error:", err)
+		if err != nil {
+			b.Fatal("Writef in benchmark failed with error:", err)
+		}
 	}
 }
 
@@ -127,11 +144,11 @@ func BenchmarkWritefSlow(b *testing.B) {
 
 	var err error
 	for n := 0; n < b.N; n++ {
-		err = Writef("benchmarking thing with id %d", n)
+		err = Writef("benchmarking slow thing with id %d", n)
+		if err != nil {
+			b.Fatal("Writef in benchmark failed with error:", err)
+		}
 		time.Sleep(500 * time.Millisecond)
-	}
-	if err != nil {
-		b.Fatal("Final writef in benchmark failed with error:", err)
 	}
 }
 
