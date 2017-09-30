@@ -3,39 +3,46 @@ package fluxlog
 
 import (
 	"fmt"
-	influx "github.com/influxdata/influxdb/client/v2"
 	"path"
 	"regexp"
 	"runtime"
 	"strings"
 	"time"
+
+	influx "github.com/influxdata/influxdb/client/v2"
 )
 
-// Influxdb client connection.
 var client influx.Client
-
-// Influxdb database to write too.
 var db string = "fluxlog"
-
-// Global tags that are always used when sending an event but may be overridden per request.
 var tags map[string]string
-
-// Measurements that are allowed to be used, if empty it acts as though all measurements are allowed.
-// This allows avoiding costly mistakes by writing to a measurement name with a typo.
 var measurementWhitelist []string
-
-// Precision to use when storing events. eg, "s" or "us" or "ms"
 var precision string = "ms"
-
-// Switch to save metadata (calling file and line number) when saving an event.
 var metadata bool = false
-
+var username string
+var password string
+var address string
 var writefRegex *regexp.Regexp
 
 func init() {
 	writefRegex = regexp.MustCompile("%(#|\\+)?([a-zA-Z])")
 }
 
+// Address for connecting to influxdb. Storing this globally allows for self recovering connections.
+func SetAddress(new string) {
+	address = new
+}
+
+// Username for connecting to influxdb. Storing this globally allows for self recovering connections.
+func SetUsername(new string) {
+	username = new
+}
+
+// Password for connecting to influxdb. Storing this globally allows for self recovering connections.
+func SetPassword(new string) {
+	password = new
+}
+
+// Switch to save metadata (calling file and line number) when saving an event.
 func SaveMetadata(new bool) {
 	metadata = new
 }
@@ -91,11 +98,15 @@ func DisconnectInflux() {
 
 // Connect to influxdb over http using the given address and credentials.
 // Credentials may both be empty strings for no authentication.
-func ConnectInflux(addr string, user string, pass string) error {
+// This will be called automatically on write if there is no open influx connection
+func ConnectInflux() error {
+	if client != nil {
+		return nil
+	}
 	c, err := influx.NewHTTPClient(influx.HTTPConfig{
-		Addr:     addr,
-		Username: user,
-		Password: pass,
+		Addr:     address,
+		Username: username,
+		Password: password,
 	})
 	if err == nil {
 		client = c
@@ -121,8 +132,9 @@ func measurementWhitelisted(measurement string) bool {
 
 // Write an event to influxdb.
 func Write(measurement string, fields map[string]interface{}, itags map[string]string) error {
-	if client == nil {
-		return fmt.Errorf("influxdb client is not connected")
+	err := ConnectInflux()
+	if err != nil {
+		return fmt.Errorf("influxdb client is not connected due to error: %s", err)
 	} else if measurementWhitelisted(measurement) == false {
 		return fmt.Errorf("measurement %s not in whitelist", measurement)
 	}
@@ -154,14 +166,18 @@ func Write(measurement string, fields map[string]interface{}, itags map[string]s
 }
 
 // Write an event to influxdb using a similar call signature to logging a message
-func Writef(signature string, fields ...interface{}) error {
-	if client == nil {
-		return fmt.Errorf("influxdb client is not connected")
+func Writef(measurement string, fields ...interface{}) error {
+	err := ConnectInflux()
+	if err != nil {
+		return fmt.Errorf("influxdb client is not connected due to error: %s", err)
+	} else if measurementWhitelisted(measurement) == false {
+		return fmt.Errorf("measurement %s not in whitelist", measurement)
 	}
+
 	fieldMap := make(map[string]interface{})
 	fieldMapCounter := make(map[string]int)
 	var suffix int
-	for i, field := range writefRegex.FindAllString(signature, -1) {
+	for i, field := range writefRegex.FindAllString(measurement, -1) {
 		suffix = 1
 		for k, v := range fieldMapCounter {
 			if k == field {
@@ -176,7 +192,7 @@ func Writef(signature string, fields ...interface{}) error {
 	if metadata {
 		fieldMap = mergeFields(getMetadataFields(2), fieldMap)
 	}
-	return Write(signature, fieldMap, map[string]string{})
+	return Write(measurement, fieldMap, map[string]string{})
 }
 
 func mergeFields(left map[string]interface{}, right map[string]interface{}) map[string]interface{} {
@@ -219,8 +235,9 @@ func ensureSchema() error {
 }
 
 func queryInflux(cmd string) (res []influx.Result, err error) {
-	if client == nil {
-		return nil, fmt.Errorf("influxdb client is not connected")
+	err = ConnectInflux()
+	if err != nil {
+		return nil, fmt.Errorf("influxdb client is not connected due to error: %s", err)
 	}
 	q := influx.Query{
 		Command:  cmd,

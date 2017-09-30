@@ -6,15 +6,14 @@ import (
 	"time"
 )
 
-var address string = "http://storage:8086"
-
-func TestConnectInfluxTcp(t *testing.T) {
-	connectt(t)
-	defer DisconnectInflux()
+func configure()
+	ChangeGlobalTags(map[string]string{"env": "test"})
+	SaveMetadata(true)
+	SetAddress("http://storage:8086")
 }
 
 func TestWrite(t *testing.T) {
-	connectt(t)              // setup influx connection
+	configure()              // setup influx connection
 	defer DisconnectInflux() // teardown influx connection
 
 	measure := "test_write_01"
@@ -33,7 +32,7 @@ func TestWrite(t *testing.T) {
 }
 
 func TestWritef(t *testing.T) {
-	connectt(t)              // setup influx connection
+	configure()              // setup influx connection
 	defer DisconnectInflux() // teardown influx connection
 
 	measure := "failed to do thing with id %d"
@@ -60,7 +59,7 @@ func TestWritef(t *testing.T) {
 }
 
 func TestWhitelist(t *testing.T) {
-	connectt(t)              // setup influx connection
+	configure()              // setup influx connection
 	defer DisconnectInflux() // teardown influx connection
 
 	measureDeny := "test_write_02"
@@ -91,7 +90,7 @@ func TestWhitelist(t *testing.T) {
 }
 
 func BenchmarkWrite(b *testing.B) {
-	connectb(b)              // setup influx connection
+	configure()              // setup influx connection
 	defer DisconnectInflux() // teardown influx connection
 
 	var err error
@@ -107,7 +106,7 @@ func BenchmarkWrite(b *testing.B) {
 }
 
 func BenchmarkWritef(b *testing.B) {
-	connectb(b)              // setup influx connection
+	configure()              // setup influx connection
 	defer DisconnectInflux() // teardown influx connection
 
 	var err error
@@ -123,7 +122,7 @@ func BenchmarkWritefSlow(b *testing.B) {
 	if testing.Short() {
 		b.Skipf("Skipping %s in short mode", b.Name())
 	}
-	connectb(b)              // setup influx connection
+	configure()              // setup influx connection
 	defer DisconnectInflux() // teardown influx connection
 
 	var err error
@@ -133,28 +132,6 @@ func BenchmarkWritefSlow(b *testing.B) {
 	}
 	if err != nil {
 		b.Fatal("Final writef in benchmark failed with error:", err)
-	}
-}
-
-func connectb(b *testing.B) {
-	b.Helper()
-	err := connect()
-	if err != nil {
-		b.Fatal("Could not connect influx tcp with address", address)
-	}
-}
-
-func connect() error {
-	ChangeGlobalTags(map[string]string{"env": "test"})
-	SaveMetadata(true)
-	return ConnectInflux(address, "", "")
-}
-
-func connectt(t *testing.T) {
-	t.Helper()
-	err := connect()
-	if err != nil {
-		t.Fatal("Could not connect influx tcp with address", address)
 	}
 }
 
