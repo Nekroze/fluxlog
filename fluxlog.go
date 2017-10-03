@@ -102,6 +102,8 @@ func DisconnectInflux() {
 func ConnectInflux() error {
 	if client != nil {
 		return nil
+	} else if len(address) == 0 {
+		return fmt.Errorf("no influxdb address provided for connection.")
 	}
 	c, err := influx.NewHTTPClient(influx.HTTPConfig{
 		Addr:     address,
