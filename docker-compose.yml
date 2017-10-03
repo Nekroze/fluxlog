@@ -6,7 +6,7 @@ services:
     restart: "no"
     command: "./test.sh ${FLUXLOG_TEST_ACTION}"
     volumes:
-      - .coverage:/go/src/gitlab.com/nekroze/fluxlog/.coverage
+      - .coverage:/go/src/github.com/nekroze/fluxlog/.coverage
     depends_on:
       - storage
 

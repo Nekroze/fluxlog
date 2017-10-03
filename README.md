@@ -9,12 +9,11 @@ At it's simplest this is just a wrapper to easily write data points to influxdb 
 ```go
 package main
 import (
-  "gitlab.com/nekroze/fluxlog"
+  "github.com/nekroze/fluxlog"
 )
 
 func main() {
-  fluxlog.ConnectInflux("http://localhost:8086", "demo", "secret")
-  defer fluxlog.DisconnectInflux()
+  fluxlog.SetAddress("http://localhost:8086")
   fluxlog.Write("mymeasurement", map[string]interface{}{"value": 42}, map[string]string{"locationtag": "earth"})
 }
 ```
@@ -26,12 +25,11 @@ As a convinience fluxlog as a `Writef` function that is similar to golang standa
 ```go
 package main
 import (
-  "gitlab.com/nekroze/fluxlog"
+  "github.com/nekroze/fluxlog"
 )
 
 func main() {
-  fluxlog.ConnectInflux("http://localhost:8086", "demo", "secret")
-  defer fluxlog.DisconnectInflux()
+  fluxlog.SetAddress("http://localhost:8086")
   fluxlog.Writef("customer %d failed to do important thing", 42)
 }
 ```
@@ -43,12 +41,11 @@ For extra information about the events your code triggers, fluxlog can add field
 ```go
 package main
 import (
-  "gitlab.com/nekroze/fluxlog"
+  "github.com/nekroze/fluxlog"
 )
 
 func main() {
-  fluxlog.ConnectInflux("http://localhost:8086", "demo", "secret")
-  defer fluxlog.DisconnectInflux()
+  fluxlog.SetAddress("http://localhost:8086")
   fluxlog.SaveMetadata(true)
   fluxlog.Writef("customer %d failed to do important thing", 42)
 }
