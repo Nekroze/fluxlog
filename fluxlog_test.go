@@ -14,8 +14,7 @@ func configure() {
 }
 
 func TestWrite(t *testing.T) {
-	configure()              // setup influx connection
-	defer DisconnectInflux() // teardown influx connection
+	configure() // setup influx connection
 
 	measure := "test_write_01"
 	field := "id"
@@ -33,8 +32,7 @@ func TestWrite(t *testing.T) {
 }
 
 func TestWritef(t *testing.T) {
-	configure()              // setup influx connection
-	defer DisconnectInflux() // teardown influx connection
+	configure() // setup influx connection
 
 	measure := "failed to do thing with id %d"
 	field := "d1"
@@ -60,8 +58,7 @@ func TestWritef(t *testing.T) {
 }
 
 func TestWhitelist(t *testing.T) {
-	configure()              // setup influx connection
-	defer DisconnectInflux() // teardown influx connection
+	configure() // setup influx connection
 
 	measureDeny := "test_write_02"
 	measureAllow := "test_write_03"
@@ -91,8 +88,7 @@ func TestWhitelist(t *testing.T) {
 }
 
 func BenchmarkWrite(b *testing.B) {
-	configure()              // setup influx connection
-	defer DisconnectInflux() // teardown influx connection
+	configure() // setup influx connection
 
 	var err error
 	fields := map[string]interface{}{"id": 42}
@@ -107,8 +103,7 @@ func BenchmarkWrite(b *testing.B) {
 }
 
 func BenchmarkWritef(b *testing.B) {
-	configure()              // setup influx connection
-	defer DisconnectInflux() // teardown influx connection
+	configure() // setup influx connection
 
 	var err error
 	b.ResetTimer()
@@ -124,8 +119,7 @@ func BenchmarkWritefSlow(b *testing.B) {
 	if testing.Short() {
 		b.Skipf("Skipping %s in short mode", b.Name())
 	}
-	configure()              // setup influx connection
-	defer DisconnectInflux() // teardown influx connection
+	configure() // setup influx connection
 
 	var err error
 	for n := 0; n < b.N; n++ {
@@ -134,23 +128,6 @@ func BenchmarkWritefSlow(b *testing.B) {
 			b.Fatal("Writef in benchmark failed with error:", err)
 		}
 		time.Sleep(time.Duration(+rand.Intn(1000)) * time.Millisecond)
-	}
-}
-
-func BenchmarkWriteReconnect(b *testing.B) {
-	configure()              // setup influx connection
-	defer DisconnectInflux() // teardown influx connection
-
-	var err error
-	fields := map[string]interface{}{"id": 42}
-	tags := map[string]string{"test": b.Name()}
-	b.ResetTimer()
-	for n := 0; n < b.N; n++ {
-		err = Write("test_write_05", fields, tags)
-		if err != nil {
-			b.Fatal("Write in benchmark failed with error:", err)
-		}
-		DisconnectInflux()
 	}
 }
 

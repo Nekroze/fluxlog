@@ -134,45 +134,35 @@ func measurementWhitelisted(measurement string) bool {
 
 // Write an event to influxdb.
 func Write(measurement string, fields map[string]interface{}, itags map[string]string) error {
-	err := ConnectInflux()
-	if err != nil {
-		return fmt.Errorf("influxdb client is not connected due to error: %s", err)
-	} else if measurementWhitelisted(measurement) == false {
+	if measurementWhitelisted(measurement) == false {
 		return fmt.Errorf("measurement %s not in whitelist", measurement)
 	}
+	return write(measurement, fields, itags)
+}
 
-	bp, err := influx.NewBatchPoints(influx.BatchPointsConfig{
-		Database:  db,
-		Precision: precision,
-	})
-	if err != nil {
-		return err
+func write(measurement string, fields map[string]interface{}, itags map[string]string) error {
+	wtags := map[string]string{}
+	for k, v := range GetGlobalTags() {
+		wtags[k] = v
 	}
-
-	wtags := GetGlobalTags()
 	for k, v := range itags {
 		wtags[k] = v
 	}
 
 	if metadata {
-		fields = mergeFields(getMetadataFields(2), fields)
+		fields = mergeFields(getMetadataFields(3), fields)
 	}
 	pt, err := influx.NewPoint(measurement, wtags, fields, time.Now())
 	if err != nil {
 		return err
 	}
-	bp.AddPoint(pt)
-
-	err = client.Write(bp)
-	return err
+	queue <- pt
+	return nil
 }
 
 // Write an event to influxdb using a similar call signature to logging a message
 func Writef(measurement string, fields ...interface{}) error {
-	err := ConnectInflux()
-	if err != nil {
-		return fmt.Errorf("influxdb client is not connected due to error: %s", err)
-	} else if measurementWhitelisted(measurement) == false {
+	if measurementWhitelisted(measurement) == false {
 		return fmt.Errorf("measurement %s not in whitelist", measurement)
 	}
 
@@ -194,7 +184,7 @@ func Writef(measurement string, fields ...interface{}) error {
 	if metadata {
 		fieldMap = mergeFields(getMetadataFields(2), fieldMap)
 	}
-	return Write(measurement, fieldMap, map[string]string{})
+	return write(measurement, fieldMap, map[string]string{})
 }
 
 func mergeFields(left map[string]interface{}, right map[string]interface{}) map[string]interface{} {
@@ -237,6 +227,7 @@ func ensureSchema() error {
 }
 
 func queryInflux(cmd string) (res []influx.Result, err error) {
+	ProcessQueue()
 	err = ConnectInflux()
 	if err != nil {
 		return nil, fmt.Errorf("influxdb client is not connected due to error: %s", err)
