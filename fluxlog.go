@@ -9,54 +9,37 @@ import (
 	"strings"
 )
 
-var tags map[string]string
-var measurementWhitelist []string
-var metadata bool = false
+var GlobalTags map[string]string
+var MeasurementWhitelist []string
+
+// Switch to save metadata (calling file and line number) when saving an event.
+var Metadata bool = false
 var writefRegex *regexp.Regexp
 
 func init() {
 	writefRegex = regexp.MustCompile("%(#|\\+)?([a-zA-Z])")
 }
 
-// Switch to save metadata (calling file and line number) when saving an event.
 func SaveMetadata(new bool) {
-	metadata = new
+	Metadata = new
 }
 
 // Add a measurement to the whitelist. In the case of writef this is the unformatted string.
 // If nothing has been whitelisted it acts as though all measurements are allowed.
 // This allows avoiding costly mistakes by writing to a measurement name with a typo.
 func AddMeasurementToWhitelist(measurement string) {
-	if measurementWhitelist == nil {
-		measurementWhitelist = []string{measurement}
+	if MeasurementWhitelist == nil {
+		MeasurementWhitelist = []string{measurement}
 		return
 	}
-	measurementWhitelist = append(measurementWhitelist, measurement)
-}
-
-// Add multiple measurements to the whitelist. See AddMeasurementToWhitelist
-func ChangeMeasurementsWhitelist(measurements []string) {
-	measurementWhitelist = measurements
-}
-
-// Change global tags that are always used when sending an event but may be overridden per request.
-func ChangeGlobalTags(newtags map[string]string) {
-	tags = newtags
-}
-
-// Get the current global tags.
-func GetGlobalTags() map[string]string {
-	if tags != nil {
-		return tags
-	}
-	return map[string]string{}
+	MeasurementWhitelist = append(MeasurementWhitelist, measurement)
 }
 
 func measurementWhitelisted(measurement string) bool {
-	if measurementWhitelist == nil || len(measurementWhitelist) == 0 {
+	if MeasurementWhitelist == nil || len(MeasurementWhitelist) == 0 {
 		return true
 	}
-	for _, allowed := range measurementWhitelist {
+	for _, allowed := range MeasurementWhitelist {
 		if measurement == allowed {
 			return true
 		}
@@ -69,7 +52,7 @@ func Write(measurement string, fields map[string]interface{}, itags map[string]s
 	if measurementWhitelisted(measurement) == false {
 		return fmt.Errorf("measurement %s not in whitelist", measurement)
 	}
-	return enqueue(measurement, mergeFields(getMetadataFields(2), fields), mergeTags(GetGlobalTags(), itags))
+	return enqueue(measurement, mergeFields(getMetadataFields(2), fields), mergeTags(GlobalTags, itags))
 }
 
 // Write an event to influxdb using a similar call signature to logging a message
@@ -93,7 +76,7 @@ func Writef(measurement string, fields ...interface{}) error {
 		}
 		fieldMap[fmt.Sprintf("%s%d", strings.TrimLeft(field, "%"), suffix)] = fields[i]
 	}
-	return enqueue(measurement, mergeFields(getMetadataFields(2), fieldMap), GetGlobalTags())
+	return enqueue(measurement, mergeFields(getMetadataFields(2), fieldMap), GlobalTags)
 }
 
 func mergeTags(left map[string]string, right map[string]string) map[string]string {
@@ -119,7 +102,7 @@ func mergeFields(left map[string]interface{}, right map[string]interface{}) map[
 }
 
 func getMetadataFields(skip int) map[string]interface{} {
-	if !metadata {
+	if !Metadata {
 		return map[string]interface{}{}
 	}
 	pc, fun, err := getRunFunc(skip + 1)

@@ -8,11 +8,11 @@ import (
 )
 
 func configure() {
-	ChangeGlobalTags(map[string]string{"env": "test"})
-	SaveMetadata(true)
-	SetAddress("http://storage:8086")
-	ChangeDatabase("fluxlog_test")
-	ChangePrecision("ns")
+	GlobalTags = map[string]string{"env": "test"}
+	Metadata = true
+	Address = "http://storage:8086"
+	DB = "fluxlog_test"
+	Precision = "ns"
 }
 
 func TestWrite(t *testing.T) {
@@ -66,11 +66,11 @@ func TestWhitelist(t *testing.T) {
 	measureAllow := "test_write_03"
 	AddMeasurementToWhitelist(measureAllow)
 	AddMeasurementToWhitelist(measureAllow + "1")
-	defer ChangeMeasurementsWhitelist([]string{})
 	field := "id"
 	count := getCount(t, measureDeny, field)
 
 	err := Write(measureDeny, map[string]interface{}{field: 42}, map[string]string{})
+	MeasurementWhitelist = []string{}
 	if err == nil {
 		t.Fatal("Failed to write to influx due to error:", err)
 	}

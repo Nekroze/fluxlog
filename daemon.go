@@ -42,8 +42,8 @@ func ProcessQueue() (err error) {
 	}
 
 	bp, err := influx.NewBatchPoints(influx.BatchPointsConfig{
-		Database:  db,
-		Precision: precision,
+		Database:  DB,
+		Precision: Precision,
 	})
 	if err != nil {
 		return
