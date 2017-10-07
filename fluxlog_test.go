@@ -97,7 +97,7 @@ func BenchmarkWrite(b *testing.B) {
 	var err error
 	fields := map[string]interface{}{"id": 42}
 	tags := map[string]string{"test": b.Name()}
-	// run the Fib function b.N times
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		err = Write("test_write_04", fields, tags)
 		if err != nil {
@@ -111,6 +111,7 @@ func BenchmarkWritef(b *testing.B) {
 	defer DisconnectInflux() // teardown influx connection
 
 	var err error
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		err = Writef("benchmarking thing with id %d", n)
 		if err != nil {
@@ -143,7 +144,7 @@ func BenchmarkWriteReconnect(b *testing.B) {
 	var err error
 	fields := map[string]interface{}{"id": 42}
 	tags := map[string]string{"test": b.Name()}
-	// run the Fib function b.N times
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		err = Write("test_write_05", fields, tags)
 		if err != nil {
