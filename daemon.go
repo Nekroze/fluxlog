@@ -59,3 +59,12 @@ func ProcessQueue() (err error) {
 	}
 	return
 }
+
+func enqueue(measurement string, fields map[string]interface{}, tags map[string]string) error {
+	pt, err := influx.NewPoint(measurement, tags, fields, time.Now())
+	if err != nil {
+		return err
+	}
+	queue <- pt
+	return nil
+}

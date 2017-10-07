@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
-	"time"
 
 	influx "github.com/influxdata/influxdb/client/v2"
 )
@@ -137,27 +136,7 @@ func Write(measurement string, fields map[string]interface{}, itags map[string]s
 	if measurementWhitelisted(measurement) == false {
 		return fmt.Errorf("measurement %s not in whitelist", measurement)
 	}
-	return write(measurement, fields, itags)
-}
-
-func write(measurement string, fields map[string]interface{}, itags map[string]string) error {
-	wtags := map[string]string{}
-	for k, v := range GetGlobalTags() {
-		wtags[k] = v
-	}
-	for k, v := range itags {
-		wtags[k] = v
-	}
-
-	if metadata {
-		fields = mergeFields(getMetadataFields(3), fields)
-	}
-	pt, err := influx.NewPoint(measurement, wtags, fields, time.Now())
-	if err != nil {
-		return err
-	}
-	queue <- pt
-	return nil
+	return enqueue(measurement, mergeFields(getMetadataFields(2), fields), mergeTags(GetGlobalTags(), itags))
 }
 
 // Write an event to influxdb using a similar call signature to logging a message
@@ -181,20 +160,35 @@ func Writef(measurement string, fields ...interface{}) error {
 		}
 		fieldMap[fmt.Sprintf("%s%d", strings.TrimLeft(field, "%"), suffix)] = fields[i]
 	}
-	if metadata {
-		fieldMap = mergeFields(getMetadataFields(2), fieldMap)
+	return enqueue(measurement, mergeFields(getMetadataFields(2), fieldMap), GetGlobalTags())
+}
+
+func mergeTags(left map[string]string, right map[string]string) map[string]string {
+	out := map[string]string{}
+	for k, v := range left {
+		out[k] = v
 	}
-	return write(measurement, fieldMap, map[string]string{})
+	for k, v := range right {
+		out[k] = v
+	}
+	return out
 }
 
 func mergeFields(left map[string]interface{}, right map[string]interface{}) map[string]interface{} {
-	for k, v := range right {
-		left[k] = v
+	out := map[string]interface{}{}
+	for k, v := range left {
+		out[k] = v
 	}
-	return left
+	for k, v := range right {
+		out[k] = v
+	}
+	return out
 }
 
 func getMetadataFields(skip int) map[string]interface{} {
+	if !metadata {
+		return map[string]interface{}{}
+	}
 	pc, fun, err := getRunFunc(skip + 1)
 	if err != nil {
 		return map[string]interface{}{}
