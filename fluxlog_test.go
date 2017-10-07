@@ -11,6 +11,8 @@ func configure() {
 	ChangeGlobalTags(map[string]string{"env": "test"})
 	SaveMetadata(true)
 	SetAddress("http://storage:8086")
+	ChangeDatabase("fluxlog_test")
+	ChangePrecision("ns")
 }
 
 func TestWrite(t *testing.T) {
