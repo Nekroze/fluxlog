@@ -43,7 +43,7 @@ func (m *Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// post
 	elapsed := time.Since(start)
 	fields := map[string]interface{}{
-		"milliseconds": int64(elapsed / time.Millisecond),
+		"microseconds": int64(elapsed / time.Microsecond),
 		"status":       rw.statusCode,
 	}
 	tags := m.buildTags(map[string]string{
