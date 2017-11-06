@@ -8,7 +8,27 @@ import (
 )
 
 var queue = make(chan *influx.Point, 5000)
+// The interval between each buffer flush and send to influx as a batch of points
 var QueueFlushInterval time.Duration = time.Second
+
+// If not set the default policy for the database will be used
+var RetentionPolicy string
+var batchConfig influx.BatchPointsConfig
+
+func getBatchConfig() influx.BatchPointsConfig {
+	if batchConfig.Database != DB ||
+	batchConfig.Precision != Precision ||
+	(len(RetentionPolicy) > 0 && batchConfig.RetentionPolicy != RetentionPolicy) {
+		batchConfig = influx.BatchPointsConfig{
+			Database: DB,
+			Precision: Precision,
+		}
+		if len(RetentionPolicy) > 0 {
+			batchConfig.RetentionPolicy = RetentionPolicy
+		}
+	}
+	return batchConfig
+}
 
 func init() {
 	go daemon()
@@ -41,10 +61,7 @@ func ProcessQueue() (err error) {
 		return
 	}
 
-	bp, err := influx.NewBatchPoints(influx.BatchPointsConfig{
-		Database:  DB,
-		Precision: Precision,
-	})
+	bp, err := influx.NewBatchPoints(getBatchConfig())
 	if err != nil {
 		return
 	}
