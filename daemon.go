@@ -7,7 +7,7 @@ import (
 	influx "github.com/influxdata/influxdb/client/v2"
 )
 
-var queue = make(chan *influx.Point, 1000)
+var queue = make(chan *influx.Point, 5000)
 var QueueFlushInterval time.Duration = time.Second
 
 func init() {
