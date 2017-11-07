@@ -7,7 +7,7 @@ import (
 	influx "github.com/influxdata/influxdb/client/v2"
 )
 
-var queue = make(chan *influx.Point, 5000)
+var queue = make(chan *influx.Point, 10000)
 // The interval between each buffer flush and send to influx as a batch of points
 var QueueFlushInterval time.Duration = time.Second
 
@@ -77,11 +77,23 @@ func ProcessQueue() (err error) {
 	return
 }
 
-func enqueue(measurement string, fields map[string]interface{}, tags map[string]string) error {
-	pt, err := influx.NewPoint(measurement, tags, fields, time.Now())
-	if err != nil {
-		return err
+func queueAdd(point *influx.Point) {
+	queue <- point
+}
+
+func tryNonAsyncQueue(point *influx.Point) {
+	//fmt.Println(len(queue))
+	if len(queue) >= 9999 {
+		go queueAdd(point)
+	} else {
+		queueAdd(point)
 	}
-	queue <- pt
-	return nil
+}
+
+func enqueue(measurement string, fields map[string]interface{}, tags map[string]string) (err error) {
+	pt, err := influx.NewPoint(measurement, tags, fields, time.Now())
+	if err == nil {
+		tryNonAsyncQueue(pt)
+	}
+	return
 }

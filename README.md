@@ -19,7 +19,7 @@ func main() {
 }
 ```
 
-This is perfect for the intended use of logging single events occuring in your code where you might have logged out to a file or console in the past.
+This is perfect for the intended use of logging single events occuring in your code where you might have logged out to a file or console in the past. You still get the benifits buffered writes and automated point batching that helps the HTTP client scale further.
 
 As a convinience fluxlog as a `Writef` function that is similar to golang standard logging functions such that you could start to convert log lines to use fluxlog:
 
