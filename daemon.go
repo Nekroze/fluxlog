@@ -10,6 +10,11 @@ import (
 var queue = make(chan *influx.Point, 10000)
 // The interval between each buffer flush and send to influx as a batch of points
 var QueueFlushInterval time.Duration = time.Second
+// The rate at which consecutive connection errors should be logged. By default, if
+// influxdb is down for 2 hours your logs should have only 2 connection error messages
+// show the problem persists.
+var ErrorLogRate time.Duration = time.Hour
+var logNextErr int64
 
 // If not set the default policy for the database will be used
 var RetentionPolicy string
@@ -44,7 +49,12 @@ func daemon() {
 	for {
 		err := ProcessQueue()
 		if err != nil {
-			log.Printf("Failed to process %d fluxlog queue points due to error: %s", len(queue), err)
+			if time.Now().Unix() >= logNextErr {
+				log.Printf("Failed to process %d fluxlog queue points due to error: %s", len(queue), err)
+				logNextErr = time.Now().Add(time.Hour).Unix()
+			}
+		} else {
+			logNextErr = 0
 		}
 		time.Sleep(QueueFlushInterval)
 	}
