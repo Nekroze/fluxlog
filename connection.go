@@ -25,6 +25,7 @@ var Address string
 
 // Disconnect fluxlog by removing the inluxdb client connection.
 func DisconnectInflux() {
+	ProcessQueue()
 	client = nil
 }
 
