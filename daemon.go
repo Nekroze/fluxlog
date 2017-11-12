@@ -53,7 +53,8 @@ func daemon() {
 				log.Printf("Failed to process %d fluxlog queue points due to error: %s", len(queue), err)
 				logNextErr = time.Now().Add(time.Hour).Unix()
 			}
-		} else {
+		} else if logNextErr > 0 {
+			log.Printf("fluxlog successfully sending influxdb points again")
 			logNextErr = 0
 		}
 		time.Sleep(QueueFlushInterval)

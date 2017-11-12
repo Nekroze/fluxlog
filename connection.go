@@ -34,7 +34,7 @@ func ConnectInflux() error {
 	if client != nil {
 		return nil
 	} else if len(Address) == 0 {
-		return fmt.Errorf("no influxdb address provided for connection.")
+		return fmt.Errorf("no influxdb address provided for connection")
 	}
 	c, err := influx.NewHTTPClient(influx.HTTPConfig{
 		Addr:     Address,
