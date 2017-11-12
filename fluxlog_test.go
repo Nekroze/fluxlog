@@ -17,6 +17,7 @@ func configure() {
 
 func TestWrite(t *testing.T) {
 	configure() // setup influx connection
+	defer ProcessQueue()
 
 	measure := "test_write_01"
 	field := "id"
@@ -35,6 +36,7 @@ func TestWrite(t *testing.T) {
 
 func TestWritef(t *testing.T) {
 	configure() // setup influx connection
+	defer ProcessQueue()
 
 	measure := "failed to do thing with id %d"
 	field := "d1"
@@ -61,6 +63,7 @@ func TestWritef(t *testing.T) {
 
 func TestWhitelist(t *testing.T) {
 	configure() // setup influx connection
+	defer ProcessQueue()
 
 	measureDeny := "test_write_02"
 	measureAllow := "test_write_03"
@@ -91,6 +94,7 @@ func TestWhitelist(t *testing.T) {
 
 func BenchmarkWrite(b *testing.B) {
 	configure() // setup influx connection
+	defer ProcessQueue()
 
 	var err error
 	fields := map[string]interface{}{"id": 42}
@@ -106,6 +110,7 @@ func BenchmarkWrite(b *testing.B) {
 
 func BenchmarkWritef(b *testing.B) {
 	configure() // setup influx connection
+	defer ProcessQueue()
 
 	var err error
 	b.ResetTimer()
@@ -122,6 +127,7 @@ func BenchmarkWritefSlow(b *testing.B) {
 		b.Skipf("Skipping %s in short mode", b.Name())
 	}
 	configure() // setup influx connection
+	defer ProcessQueue()
 
 	var err error
 	for n := 0; n < b.N; n++ {

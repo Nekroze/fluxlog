@@ -7,17 +7,27 @@ import (
 	influx "github.com/influxdata/influxdb/client/v2"
 )
 
-var queue = make(chan *influx.Point, 10000)
+var queueSize int = 10000
+var queue = make(chan *influx.Point, queueSize)
+
 // The interval between each buffer flush and send to influx as a batch of points
 var QueueFlushInterval time.Duration = time.Second
+
 // The rate at which consecutive connection errors should be logged. By default, if
 // influxdb is down for 2 hours your logs should have only 2 connection error messages
 // show the problem persists.
 var ErrorLogRate time.Duration = time.Hour
 var logNextErr int64
 
+// When set to false fluxlog write functions buffer but block the bufer is full it will
+// block until there is space. When set to true the queuing will happen in a goroutine
+// that blocks but allows the caller to continue operating as though it went through
+// immediately.
+var AsyncBufferWhenFull bool
+
 // If not set the default policy for the database will be used
 var RetentionPolicy string
+
 var batchConfig influx.BatchPointsConfig
 
 func getBatchConfig() influx.BatchPointsConfig {
@@ -93,8 +103,7 @@ func queueAdd(point *influx.Point) {
 }
 
 func tryNonAsyncQueue(point *influx.Point) {
-	//fmt.Println(len(queue))
-	if len(queue) >= 9999 {
+	if AsyncBufferWhenFull && len(queue) >= queueSize {
 		go queueAdd(point)
 	} else {
 		queueAdd(point)

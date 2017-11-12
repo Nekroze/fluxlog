@@ -9,7 +9,7 @@ import (
 
 func TestMiddleware(t *testing.T) {
 	configure()              // setup influx connection
-	defer DisconnectInflux() // teardown influx connection
+	defer ProcessQueue()
 
 	testcheck := func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -41,7 +41,7 @@ func TestMiddleware(t *testing.T) {
 
 func BenchmarkMiddleware(b *testing.B) {
 	configure()              // setup influx connection
-	defer DisconnectInflux() // teardown influx connection
+	defer ProcessQueue()
 
 	testcheck := func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
